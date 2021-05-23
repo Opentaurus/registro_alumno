@@ -1,0 +1,121 @@
+USE bd_registro_alumno;
+DELIMITER $$
+USE bd_registro_alumno$$
+/* NOMBRE:usp_v_usuario 
+   DESCRIPCION:Recibe los parametros usuario y contraseña y valida si tiene acceso autorizado 
+			   Devuelve la cantidad de milisegundos de vida que tendra el token o la session	
+   AUTOR:pascual.perez@opentaurus.com  
+*/
+CREATE PROCEDURE usp_v_usuario(IN P_OPTION INT,IN P_USUARIO_ID INT,IN P_USUARIO VARCHAR(60),IN P_PASSWORD VARCHAR(128))
+BEGIN
+DECLARE AUTORIZADO INT;
+DECLARE MINUTOS_DE_VIDA INT;
+DECLARE S_RESULT INT;
+DECLARE S_MENSAJE VARCHAR(255);
+DECLARE S_UNIX BIGINT;
+DECLARE S_ID INT;
+SET S_RESULT=0;
+SET S_ID=0;
+SET S_MENSAJE='';
+SET MINUTOS_DE_VIDA=60;
+SET S_UNIX=((SELECT unix_timestamp(now())+(MINUTOS_DE_VIDA*60))*1000);
+IF P_OPTION=5 THEN
+	SET S_ID =(SELECT USUARIO_ID FROM USUARIO WHERE USUARIO=P_USUARIO);        
+	IF  S_ID IS NOT NULL THEN
+		SET AUTORIZADO=(SELECT (CASE WHEN CONVERT(PASSWORD, BINARY)=CONVERT(P_PASSWORD, BINARY) THEN 1 ELSE 0 END) FROM USUARIO WHERE USUARIO_ID=S_ID); 		
+        IF AUTORIZADO=1 THEN
+			SET S_RESULT=1;
+			SET S_MENSAJE='Acceso autorizado';
+		 ELSE
+			SET S_RESULT=0;
+            SET S_ID=0;
+			SET S_MENSAJE='El password no es correcto';
+		 END IF;
+	ELSE
+		SET S_RESULT=0;
+        SET S_ID=0;
+		SET S_MENSAJE='El nombre de usuario no existe';
+	END IF;
+ELSE
+    SET S_RESULT=0;
+    SET S_ID=0;
+	SET S_MENSAJE='Opción no valida';
+END IF;
+SELECT S_RESULT AS Resultado, S_MENSAJE AS Mensaje, S_UNIX AS Unix,S_ID AS UserId;
+END;
+
+
+/* NOMBRE:usp_get_alumno 
+   DESCRIPCION:Recibe como parametros el Id de un alumno
+			   Devuelve los datos de ese alumno, si no recibe Id devuelve todos
+   AUTOR:pascual.perez@opentaurus.com  
+*/
+CREATE PROCEDURE usp_get_alumno(IN P_ALUMNO_ID INT)
+BEGIN
+IF P_ALUMNO_ID>0 THEN
+	SELECT  ALUMNO_ID, NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, FECHA_NACIMIENTO, SEXO, GRADO_ESTUDIO_ACTUAL, EMAIL, TELEFONO 
+    FROM alumno
+    WHERE ALUMNO_ID=P_ALUMNO_ID;
+ELSE
+	SELECT  ALUMNO_ID, NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, FECHA_NACIMIENTO, SEXO, GRADO_ESTUDIO_ACTUAL, EMAIL, TELEFONO 
+    FROM alumno;    
+END IF;
+
+END;
+/* NOMBRE:usp_iud_alumno 
+   DESCRIPCION:Procedimiento para insertar actualizar y eliminar un registro alumno
+			   (Aplicando el principio 10 del manifiesto agil,Actualizar y eliminar todavia no se implementan)
+   AUTOR:pascual.perez@opentaurus.com  
+*/
+CREATE PROCEDURE usp_iud_alumno(
+ IN P_OPTION INT
+,IN P_ALUMNO_ID BIGINT
+,IN P_NOMBRE VARCHAR(60) 
+,IN P_APELLIDO_PATERNO VARCHAR(60)
+,IN P_APELLIDO_MATERNO VARCHAR(60)
+,IN P_FECHA_NACIMIENTO DATE
+,IN P_SEXO VARCHAR(20)
+,IN P_GRADO_ESTUDIO_ACTUAL VARCHAR(85)
+,IN P_EMAIL  VARCHAR(60)
+,IN P_TELEFONO BIGINT
+)
+BEGIN
+DECLARE S_RESULT INT;
+DECLARE S_MENSAJE VARCHAR(255);
+DECLARE REGISTRO INT;
+SET S_RESULT=0;
+SET S_MENSAJE='';
+
+IF P_OPTION>0 AND P_OPTION<4 THEN
+	-- INSERTAR ALUMNO
+	IF P_OPTION=1 THEN
+		SET REGISTRO=(SELECT ALUMNO_ID FROM ALUMNO WHERE EMAIL=P_EMAIL); 
+        IF REGISTRO IS NULL THEN        
+			INSERT INTO ALUMNO (NOMBRE, APELLIDO_PATERNO, APELLIDO_MATERNO, FECHA_NACIMIENTO, SEXO, GRADO_ESTUDIO_ACTUAL, EMAIL, TELEFONO)
+			SELECT P_NOMBRE,P_APELLIDO_PATERNO,P_APELLIDO_MATERNO,P_FECHA_NACIMIENTO,P_SEXO,P_GRADO_ESTUDIO_ACTUAL,P_EMAIL,P_TELEFONO;    
+			SET S_RESULT=1;
+			SET S_MENSAJE='Se agrego un registro nuevo';
+         ELSE
+			SET S_RESULT=0;
+			SET S_MENSAJE=CONCAT('El registro ya existe: ',P_EMAIL);
+         END IF;         
+    END IF;
+    --  ACTUALIZAR ALUMNO
+    IF P_OPTION=2 THEN
+        SET S_RESULT=0;
+		SET S_MENSAJE='Operacion no implementada';
+    END IF;
+	-- ELIMINAR ALUMNO
+    IF P_OPTION=3 THEN
+        SET S_RESULT=0;
+		SET S_MENSAJE='Operacion no implementada';
+    END IF;    
+ELSE
+	SET S_RESULT=0;
+    SET S_MENSAJE='Opción no valida';
+END IF;
+SELECT S_RESULT AS Resultado, S_MENSAJE AS Mensaje;
+END$$
+DELIMITER ;
+;
+
