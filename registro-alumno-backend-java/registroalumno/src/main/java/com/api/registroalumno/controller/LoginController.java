@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.api.registroalumno.entity.RespuestaLoginEntity;
 import com.api.registroalumno.entity.UsuarioEntity;
+import com.api.registroalumno.security.JsonWebToken;
 import com.api.registroalumno.service.UsuarioService;
 
 @RestController
@@ -35,8 +36,8 @@ public class LoginController {
 		String Token="";		
 		if (Integer.valueOf(lista[0][0])==1)
 			{		
-			/*Aqui generar el Token*/
-						 
+			JsonWebToken jwt = new JsonWebToken(Long.parseLong(lista[0][2]));
+			Token=jwt.getToken(Integer.valueOf(lista[0][3]),usuario.getUsuario());			 	 
 			}
 		RespuestaLoginEntity respuesta=new RespuestaLoginEntity(
 					Integer.valueOf(lista[0][0])
